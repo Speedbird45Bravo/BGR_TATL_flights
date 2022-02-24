@@ -41,17 +41,21 @@ print(f"Program run at {now}.")
 #
 #   # In the interest of cardinality, we have also added an ID field to provide a singular field that can function as a primary key.
 
-arr = Arrivals().df
-dep = Departures().df
+# arr and dep changed to arrivals and departures 2/24/2022
+# Dictionaries to convert actualarrivaltime and actualdeparturetime to "Date" added 2/24/2022
+arrivals = Arrivals().df
+arrivals = arrivals[['actualarrivaltime','ident','aircrafttype','origin','destination']].rename(columns={"actualarrivaltime":"Date", "aircrafttype":"Type"})
+departures = Departures().df
+departures = departures[['actualdeparturetime','ident','aircrafttype','origin','destination']].rename(columns={"actualdeparturetime":"Date", "aircrafttype":"Type"})
+
 # RIDT added 21:29 1/15/2022
-bgr = arr.append(dep).reset_index(drop=True)
+# Renaming of columns added 2/24/2022
+bgr = arrivals.append(departures).reset_index(drop=True).rename(columns={"origin":"Origin", "destination":"Destination"})
 
-# When formatted as a datetime, the actual arrival date is often listed as 1-1-1970 if there is no actualarrivaltime yet (a value of 0). 
-# If that is the case we will just default to the estimatedarrivaltime.
-bgr['arrivaltime'] = [bgr['estimatedarrivaltime'] if 0 else i for i in bgr['actualarrivaltime']]
-bgr = bgr.drop(['estimatedarrivaltime','actualarrivaltime'], axis=1)
+# First thing we will do now that we have the arrivals and departures stacked is pull the date. 2/24/2022
+bgr['Date'] = bgr['Date'].apply(lambda x: dt.fromtimestamp(x).strftime("%Y-%m-%d"))
 
-# Here we will capture the identifiers.
+# Now that we have our arrival and departures together (for a given pull), we will capture the identifiers.
 idents_a = []
 idents_b = []
 
@@ -71,10 +75,7 @@ bgr['Airline_SYM'] = pd.Series(idents_a)
 bgr['Airline_SYM'].fillna("None", inplace=True)
 bgr['Airline'] = bgr['Airline_SYM'].map(al_dict)
 bgr['Flight'] = idents_b
-bgr['Type'] = bgr['aircrafttype'].map(ac_dict)
-bgr = bgr.drop(["aircrafttype","ident"], axis=1)
-bgr['Origin'] = bgr['origin'].str.strip()
-bgr['Destination'] = bgr['destination'].str.strip()
+bgr['Type'] = bgr['Type'].map(ac_dict)
 
 # We want to filter out flights that are entirely arriving and departing from the US (starting with "K"), Canada (starting with "C"), Mexico (starting with "M"), and
 # Greenland (starting with "BG"). There are other possible airports outside of these but most can be dealt with ad hoc.
@@ -94,13 +95,20 @@ bgr['Destination'] = bgr['Destination'].map(code_dict)
 bgr['Origin Country'] = bgr['Origin'].map(apc_dict)
 bgr['Destination Country'] = bgr['Destination'].map(apc_dict)
 
-# Condensing the timestamp into a strftime. Since we need to choose a singular date field, we will go with the actual departure time (in BGR time). There may be some anomalies
-# in terms of the rare westbound flight that left Europe before midnight and landed after midnight, but those are few and far between and are not germane to the overall
-# records.
-bgr["Date"] = bgr["actualdeparturetime"].apply(lambda x: dt.fromtimestamp(x).strftime("%Y-%m-%d"))
+# ID serialization.
+bgr['ID'] = bgr['Date'].astype(str) + bgr['Airline_SYM'].astype(str) + bgr['Flight'].astype(str)
+bgr['ID'] = bgr['ID'].str.replace("-", "")
+bgr['ID'] = bgr['ID'].str[2:]
+bgr['ID'] = bgr['ID'].str.replace("nan", "")
+# Replacing None flight numbers with nothing. 1/5/2022
+bgr['ID'] = bgr['ID'].str.replace("None","")
+bgr['Flight'] = bgr['Flight'].str.replace("None","")
 
-# Getting rid of the unnecessary columns.
-bgr = bgr.drop(["actualdeparturetime","origin","destination","originName","destinationName","originCity","destinationCity","arrivaltime"], axis=1)
+# Dropping ident and Airline_SYM 2/24/2022
+bgr = bgr.drop(columns=["ident","Airline_SYM"])
+
+# Reordering columns 2/24/2022
+bgr = bgr[['ID','Date','Airline','Flight','Type','Origin','Origin Country','Destination','Destination Country']]
 
 # If there are no flights to add, the program exits.
 if len(bgr) == 0:
@@ -114,20 +122,9 @@ else:
 # No medical flights.
 bgr = bgr[(bgr['Flight'] != "901") | (bgr['Airline'] != "N")]
 
-# ID serialization.
-bgr['ID'] = bgr['Date'].astype(str) + bgr['Airline_SYM'].astype(str) + bgr['Flight'].astype(str)
-bgr['ID'] = bgr['ID'].str.replace("-", "")
-bgr['ID'] = bgr['ID'].str[2:]
-bgr['ID'] = bgr['ID'].str.replace("nan", "")
-# Replacing None flight numbers with nothing. 1/5/2022
-bgr['ID'] = bgr['ID'].str.replace("None","")
-bgr['Flight'] = bgr['Flight'].str.replace("None","")
-
 # ML model to predict Direction based on Origin Country.
 X, y = df[['Origin Country']], df['Direction']
-
 le = LabelEncoder()
-
 X = le.fit_transform(X.astype(str)).reshape(-1,1)
 
 if len(bgr) != 1:
@@ -137,17 +134,16 @@ else:
 
 # The Scikit-learn RF Classifier oversamples westbound flights so the imbalanced-learn RF classifier does a better job overall.
 model = BalancedRandomForestClassifier()
-
 model.fit(X, y)
-
 predictions = model.predict(X_test)
-
 bgr['Direction'] = predictions
-
 bgr = bgr[['ID','Date','Airline','Flight','Type','Origin','Origin Country','Destination','Destination Country','Direction']]
 
 # Drop duplicate code chained 13:01 1/1/2022
-df = df.append(bgr).sort_values(by=['Date']).reset_index(drop=True).drop_duplicates(subset=['ID'])
+df = df.append(bgr)
+
+# Sort values isolated 10:34 2/5/2022
+df = df.sort_values(by=['Date']).reset_index(drop=True).drop_duplicates(subset=['ID'])
 
 if init_len == len(df):
     print("No flights added. Program exiting.")
@@ -157,7 +153,7 @@ else:
 # Last fix 18:30 12/29/2021
 set_with_dataframe(df_ws, df)
 
-# Sleep logic 11:34 1/8/2022
-time.sleep(6)
+# Sleep logic set to 4 19:02 2/12/2022
+time.sleep(4)
 
 exit()
