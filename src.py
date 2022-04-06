@@ -7,7 +7,9 @@ payload = {"airport":"KBGR", "howMany":15}
 url = "https://flightxml.flightaware.com/json/FlightXML2/"
 
 class Arrivals:
-
+    
+    """Returns an arrival object."""
+    
     def __init__(self):
         self.user = user
         self.key = key
@@ -17,6 +19,8 @@ class Arrivals:
         self.df = pd.DataFrame(self.req['ArrivedResult']['arrivals'])
 
 class Departures:
+    
+    """Returns a departure object."""
 
     def __init__(self):
         self.user = user
