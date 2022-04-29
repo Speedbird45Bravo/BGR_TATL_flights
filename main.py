@@ -2,8 +2,6 @@ from src import Arrivals, Departures
 from gs import df, df_ws, init_len
 from dicts import ac_dict, al_dict, apc_dict, code_dict
 from datetime import datetime as dt
-from sklearn.preprocessing import LabelEncoder
-from imblearn.ensemble import BalancedRandomForestClassifier
 from gspread_dataframe import set_with_dataframe
 import re
 import pandas as pd
@@ -13,10 +11,10 @@ warnings.filterwarnings("ignore")
 
 now = dt.now()
 
-print(f"Program run at {now}.")
+print(f"Flights pulled from FlightAware API queries at {now}.")
 
 # The main objective for the program is to automate the addition of flights to an existing spreadsheet.
-# Previously, there were nine (reduced to seven with datetime and ML, respectively) fields that had to be filled out per observation:
+# Previously, there were nine fields that had to be filled out per observation:
 # 
 # 	# Date (if none, current datetime date entered)
 # 	# Airline (if applicable)
@@ -26,18 +24,18 @@ print(f"Program run at {now}.")
 # 	# Origin Country
 # 	# Destination IATA code
 # 	# Destination Country
-# 	# Direction (predicted by ML)
+# 	# Direction
 # 
 # With this program, we will scrape the FlightAware API to see if there are any new transatlantic flights to add to our spreadsheet.
 # If there are no flights to add, the program exits and nothing changes.
-# If there are flights to add, it will format them properly by (future plans after "EVENTUALLY" if applicable):
+# If there are flights to add, it will format them properly by:
 #    	
 # 	# Reducing the departure/arrival times to strf dates
 #	# Splitting the ICAO identifier into an Airline and Flight # (if applicable)
 #  	# Recording aircraft type
 #  	# Converting ICAO codes to IATA codes via dictionary
 # 	# Adding origin and destination countries (derived from IATA codes via dictionary)
-# 	# Predicting direction based on origin country (e.g. If flight originates in USA, it's "E" for East; otherwise, "W" for West.)
+# 	# Direction based on origin country (e.g. If flight originates in USA, it's "E" for East; otherwise, "W" for West.)
 #
 #   # In the interest of cardinality, we have also added an ID field to provide a singular field that can function as a primary key.
 
@@ -80,9 +78,9 @@ bgr['Type'] = bgr['Type'].map(ac_dict)
 # We want to filter out flights that are entirely arriving and departing from the US (starting with "K"), Canada (starting with "C"), Mexico (starting with "M"), and
 # Greenland (starting with "BG"). There are other possible airports outside of these but most can be dealt with ad hoc.
 # "BG" and " " on bgr['Type'][0] checks 12:10 12/31/2021.
-# "TJ" checks on bgr['Origin'].str[0:2] 1/3/2022
+# "T" checks on bgr['Origin'][0] 4/23/2022
 # str.len() == 4 checks on ['Origin'] and ['Destination'] 1/7/2022
-bgr = bgr[(((bgr['Origin'].str[0] != "K") & (bgr['Origin'].str[0] != "C") & (bgr['Origin'].str[1] != " ") & (bgr['Origin'].str[0] != "M") & (bgr['Origin'].str[0:2] != "BG") & (bgr['Origin'].str[0:2] != "TJ")) | ((bgr['Destination'].str[0] != "K") & (bgr['Destination'].str[0] != "C") & (bgr['Destination'].str[1] != " ") & (bgr['Destination'].str[0] != "M") & (bgr['Origin'].str[0:2] != "BG") & (bgr['Origin'].str[0:2] != "TJ"))) & (bgr['Origin'].str.len() == 4) & (bgr['Destination'].str.len() == 4) & (bgr['Type'].str[0] != " ")]
+bgr = bgr[(((bgr['Origin'].str[0] != "K") & (bgr['Origin'].str[0] != "C") & (bgr['Origin'].str[1] != " ") & (bgr['Origin'].str[0] != "M") & (bgr['Origin'].str[0:2] != "BG") & (bgr['Origin'].str[0] != "T")) | ((bgr['Destination'].str[0] != "K") & (bgr['Destination'].str[0] != "C") & (bgr['Destination'].str[1] != " ") & (bgr['Destination'].str[0] != "M") & (bgr['Destination'].str[0:2] != "BG") & (bgr['Destination'].str[0] != "T"))) & (bgr['Origin'].str.len() == 4) & (bgr['Destination'].str.len() == 4) & (bgr['Type'].str[0] != " ")]
 
 # Drop the null aircraft 1/8/2022
 bgr = bgr[bgr['Type'].notna()]
@@ -110,33 +108,32 @@ bgr = bgr.drop(columns=["ident","Airline_SYM"])
 # Reordering columns 2/24/2022
 bgr = bgr[['ID','Date','Airline','Flight','Type','Origin','Origin Country','Destination','Destination Country']]
 
+end_string = "No flights added. Program exiting."
+
 # If there are no flights to add, the program exits.
-if len(bgr) == 0:
+if len(bgr) != 0:
+    pass
+else:
+    print(end_string)
+    # end_string position adjusted 4/9/2022
     # Sleep logic added 9:42 1/15/2022
-    print("No flights to add.")
     time.sleep(6)
     exit()
-else:
-    pass
 
 # No medical flights.
 bgr = bgr[(bgr['Flight'] != "901") | (bgr['Airline'] != "N")]
 
-# ML model to predict Direction based on Origin Country.
-X, y = df[['Origin Country']], df['Direction']
-le = LabelEncoder()
-X = le.fit_transform(X.astype(str)).reshape(-1,1)
+directions = []
 
-if len(bgr) != 1:
-    X_test = le.transform(bgr['Origin Country'].astype(str)).reshape(-1,1)
-else:
-    X_test = le.transform(bgr['Origin Country'].astype(str)).reshape(1,-1)
+# Direction logic 4/28/2022
+for origin in bgr['Origin Country']:
+    if origin == "USA":
+        directions.append("E")
+    else:
+        directions.append("W")
 
-# The Scikit-learn RF Classifier oversamples westbound flights so the imbalanced-learn RF classifier does a better job overall.
-model = BalancedRandomForestClassifier()
-model.fit(X, y)
-predictions = model.predict(X_test)
-bgr['Direction'] = predictions
+bgr['Direction'] = directions
+
 bgr = bgr[['ID','Date','Airline','Flight','Type','Origin','Origin Country','Destination','Destination Country','Direction']]
 
 # Drop duplicate code chained 13:01 1/1/2022
@@ -145,10 +142,7 @@ df = df.append(bgr)
 # Sort values isolated 10:34 2/5/2022
 df = df.sort_values(by=['Date']).reset_index(drop=True).drop_duplicates(subset=['ID'])
 
-if init_len == len(df):
-    print("No flights added. Program exiting.")
-else:
-    print(f"{len(df) - init_len} flights added. {len(df)} flights total")
+print(f"{len(df) - init_len} flights added. {len(df)} flights total")
 
 # Last fix 18:30 12/29/2021
 set_with_dataframe(df_ws, df)
