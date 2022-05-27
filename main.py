@@ -15,7 +15,7 @@ print(f"Flights pulled from FlightAware API queries at {now}.")
 
 # The main objective for the program is to automate the addition of flights to an existing spreadsheet.
 # Previously, there were nine fields that had to be filled out per observation:
-# 
+#
 # 	# Date (if none, current datetime date entered)
 # 	# Airline (if applicable)
 #	# Flight # (if applicable)
@@ -25,11 +25,11 @@ print(f"Flights pulled from FlightAware API queries at {now}.")
 # 	# Destination IATA code
 # 	# Destination Country
 # 	# Direction
-# 
+#
 # With this program, we will scrape the FlightAware API to see if there are any new transatlantic flights to add to our spreadsheet.
 # If there are no flights to add, the program exits and nothing changes.
 # If there are flights to add, it will format them properly by:
-#    	
+#
 # 	# Reducing the departure/arrival times to strf dates
 #	# Splitting the ICAO identifier into an Airline and Flight # (if applicable)
 #  	# Recording aircraft type
@@ -108,17 +108,8 @@ bgr = bgr.drop(columns=["ident","Airline_SYM"])
 # Reordering columns 2/24/2022
 bgr = bgr[['ID','Date','Airline','Flight','Type','Origin','Origin Country','Destination','Destination Country']]
 
-end_string = "No flights added. Program exiting."
-
-# If there are no flights to add, the program exits.
-if len(bgr) != 0:
-    pass
-else:
-    print(end_string)
-    # end_string position adjusted 4/9/2022
-    # Sleep logic added 9:42 1/15/2022
-    time.sleep(6)
-    exit()
+# End string adjusted 5/23/2022
+end_string = "No flights to be added. Program exiting."
 
 # No medical flights.
 bgr = bgr[(bgr['Flight'] != "901") | (bgr['Airline'] != "N")]
@@ -136,13 +127,36 @@ bgr['Direction'] = directions
 
 bgr = bgr[['ID','Date','Airline','Flight','Type','Origin','Origin Country','Destination','Destination Country','Direction']]
 
+bgr_len = len(bgr)
+
+# If there are no flights to add, the program exits.
+if len(bgr) != 0:
+    pass
+else:
+    print(end_string)
+    # end_string position adjusted 4/9/2022
+    # Sleep logic added 9:42 1/15/2022
+    time.sleep(6)
+    exit()
+
+
 # Drop duplicate code chained 13:01 1/1/2022
 df = df.append(bgr)
+
+df_end_len = len(df)
 
 # Sort values isolated 10:34 2/5/2022
 df = df.sort_values(by=['Date']).reset_index(drop=True).drop_duplicates(subset=['ID'])
 
-print(f"{len(df) - init_len} flights added. {len(df)} flights total")
+# len calcs and logic inserted 5/25/2022
+if init_len + bgr_len == df_end_len:
+    print(end_string)
+    time.sleep(4)
+    exit()
+else:
+    print(f"{len(df) - init_len} flights added. {len(df)} flights total")
+# Print flights logic 5/26/2022
+    print(bgr)
 
 # Last fix 18:30 12/29/2021
 set_with_dataframe(df_ws, df)
