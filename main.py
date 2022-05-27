@@ -130,6 +130,7 @@ bgr = bgr[['ID','Date','Airline','Flight','Type','Origin','Origin Country','Dest
 bgr_len = len(bgr)
 
 # If there are no flights to add, the program exits.
+# Order adjusted 5/28/2022
 if len(bgr) != 0:
     pass
 else:
@@ -140,16 +141,18 @@ else:
     exit()
 
 
+
 # Drop duplicate code chained 13:01 1/1/2022
 df = df.append(bgr)
-
-df_end_len = len(df)
 
 # Sort values isolated 10:34 2/5/2022
 df = df.sort_values(by=['Date']).reset_index(drop=True).drop_duplicates(subset=['ID'])
 
+# Adj 5/28/2022
+df_end_len = len(df)
+
 # len calcs and logic inserted 5/25/2022
-if init_len + bgr_len == df_end_len:
+if init_len == df_end_len:
     print(end_string)
     time.sleep(4)
     exit()
