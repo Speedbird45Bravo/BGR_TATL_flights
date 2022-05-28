@@ -159,7 +159,7 @@ else:
     pass
 
 # bgr_final created 5/28/2022
-bgr_final = bgr[['aircraft','origin','destination']]
+bgr_final = bgr[['Type','Origin','Destination']]
 
 # Print flights logic created 5/26/2022, amended 5/28/2022
 print(f"{len(df) - init_len} flights added. {len(df)} flights total")
