@@ -130,7 +130,7 @@ bgr = bgr[['ID','Date','Airline','Flight','Type','Origin','Origin Country','Dest
 bgr_len = len(bgr)
 
 # If there are no flights to add, the program exits.
-# Order adjusted 5/28/2022
+# Order adjusted 5/27/2022
 if len(bgr) != 0:
     pass
 else:
@@ -140,15 +140,13 @@ else:
     time.sleep(6)
     exit()
 
-
-
 # Drop duplicate code chained 13:01 1/1/2022
 df = df.append(bgr)
 
 # Sort values isolated 10:34 2/5/2022
 df = df.sort_values(by=['Date']).reset_index(drop=True).drop_duplicates(subset=['ID'])
 
-# Adj 5/28/2022
+# Adj 5/27/2022
 df_end_len = len(df)
 
 # len calcs and logic inserted 5/25/2022
@@ -157,9 +155,18 @@ if init_len == df_end_len:
     time.sleep(4)
     exit()
 else:
-    print(f"{len(df) - init_len} flights added. {len(df)} flights total")
-# Print flights logic 5/26/2022
-    print(bgr)
+    # Converted from insights to pass 5/28/2022
+    pass
+
+# bgr_final created 5/28/2022
+bgr_final = bgr[['aircraft','origin','destination']]
+
+# Print flights logic created 5/26/2022, amended 5/28/2022
+print(f"{len(df) - init_len} flights added. {len(df)} flights total")
+print()
+print("Flight(s) Added:")
+print()
+print(bgr_final)
 
 # Last fix 18:30 12/29/2021
 set_with_dataframe(df_ws, df)
