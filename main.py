@@ -97,7 +97,8 @@ bgr['Flight'] = idents_b
 bgr['Type'] = bgr['Type'].map(ac_dict)
 
 # We want to filter out flights that are entirely arriving and departing
-# from the US (starting with "K"), Canada (starting with "C"), Mexico (starting with "M"), and
+# from the US (starting with "K"), Canada (starting with "C"), Mexico
+# (starting with "M"), and
 # Greenland (starting with "BG"). There are other possible airports
 # outside of these but most can be dealt with ad hoc.
 # "BG" and " " on bgr['Type'][0] checks 12:10 12/31/2021.
@@ -203,7 +204,6 @@ print()
 print("Flight(s) Added:")
 print()
 print(bgr_final)
-
 
 # Last fix 18:30 12/29/2021
 set_with_dataframe(df_ws, df)
