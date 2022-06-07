@@ -11,10 +11,13 @@ warnings.filterwarnings("ignore")
 
 now = dt.now()
 
+# pep8 Length compliant 6/6/2022
+
 print(f"Flights pulled from FlightAware API queries at {now}.")
 
-# The main objective for the program is to automate the addition of flights to an existing spreadsheet.
-# Previously, there were nine fields that had to be filled out per observation:
+# The main objective for the program is to automate the addition
+# of flights to an existing spreadsheet.
+# Previously, there were nine fields to be filled out per observation:
 #
 # 	# Date (if none, current datetime date entered)
 # 	# Airline (if applicable)
@@ -26,7 +29,8 @@ print(f"Flights pulled from FlightAware API queries at {now}.")
 # 	# Destination Country
 # 	# Direction
 #
-# With this program, we will scrape the FlightAware API to see if there are any new transatlantic flights to add to our spreadsheet.
+# With this program, we will scrape the FlightAware API to see
+# if there are any new transatlantic flights to add to our spreadsheet.
 # If there are no flights to add, the program exits and nothing changes.
 # If there are flights to add, it will format them properly by:
 #
@@ -34,24 +38,36 @@ print(f"Flights pulled from FlightAware API queries at {now}.")
 #	# Splitting the ICAO identifier into an Airline and Flight # (if applicable)
 #  	# Recording aircraft type
 #  	# Converting ICAO codes to IATA codes via dictionary
-# 	# Adding origin and destination countries (derived from IATA codes via dictionary)
-# 	# Direction based on origin country (e.g. If flight originates in USA, it's "E" for East; otherwise, "W" for West.)
+# 	# Adding origin and destination countries (derived from IATA codes
+#   # via dictionary)
+# 	# Direction based on origin country (e.g. If flight
+# 	# in USA, it's "E" for East; otherwise, "W" for West.)
 #
-#   # In the interest of cardinality, we have also added an ID field to provide a singular field that can function as a primary key.
+#   # In the interest of cardinality, we have also added an
+#   ID field to provide a singular field that can function as a primary key.
 
 # arr and dep changed to arrivals and departures 2/24/2022
-# Dictionaries to convert actualarrivaltime and actualdeparturetime to "Date" added 2/24/2022
+# Dictionaries to convert actualarrivaltime and actualdeparturetime
+# to "Date" added 2/24/2022
 arrivals = Arrivals().df
-arrivals = arrivals[['actualarrivaltime','ident','aircrafttype','origin','destination']].rename(columns={"actualarrivaltime":"Date", "aircrafttype":"Type"})
+arrivals = arrivals[['actualarrivaltime','ident','aircrafttype',\
+                     'origin','destination']]\
+                    .rename(columns={"actualarrivaltime":"Date",\
+                                     "aircrafttype":"Type"})
 departures = Departures().df
-departures = departures[['actualdeparturetime','ident','aircrafttype','origin','destination']].rename(columns={"actualdeparturetime":"Date", "aircrafttype":"Type"})
+departures = departures[['actualdeparturetime','ident',\
+                         'aircrafttype','origin','destination']]\
+                        .rename(columns={"actualdeparturetime":"Date",\
+                                         "aircrafttype":"Type"})
 
 # RIDT added 21:29 1/15/2022
 # Renaming of columns added 2/24/2022
-bgr = arrivals.append(departures).reset_index(drop=True).rename(columns={"origin":"Origin", "destination":"Destination"})
+bgr = arrivals.append(departures).reset_index(drop=True)\
+    .rename(columns={"origin":"Origin", "destination":"Destination"})
 
 # First thing we will do now that we have the arrivals and departures stacked is pull the date. 2/24/2022
-bgr['Date'] = bgr['Date'].apply(lambda x: dt.fromtimestamp(x).strftime("%Y-%m-%d"))
+bgr['Date'] = bgr['Date'].apply(lambda x:\
+    dt.fromtimestamp(x).strftime("%Y-%m-%d"))
 
 # Now that we have our arrival and departures together (for a given pull), we will capture the identifiers.
 idents_a = []
@@ -80,7 +96,15 @@ bgr['Type'] = bgr['Type'].map(ac_dict)
 # "BG" and " " on bgr['Type'][0] checks 12:10 12/31/2021.
 # "T" checks on bgr['Origin'][0] 4/23/2022
 # str.len() == 4 checks on ['Origin'] and ['Destination'] 1/7/2022
-bgr = bgr[(((bgr['Origin'].str[0] != "K") & (bgr['Origin'].str[0] != "C") & (bgr['Origin'].str[1] != " ") & (bgr['Origin'].str[0] != "M") & (bgr['Origin'].str[0:2] != "BG") & (bgr['Origin'].str[0] != "T")) | ((bgr['Destination'].str[0] != "K") & (bgr['Destination'].str[0] != "C") & (bgr['Destination'].str[1] != " ") & (bgr['Destination'].str[0] != "M") & (bgr['Destination'].str[0:2] != "BG") & (bgr['Destination'].str[0] != "T"))) & (bgr['Origin'].str.len() == 4) & (bgr['Destination'].str.len() == 4) & (bgr['Type'].str[0] != " ")]
+bgr = bgr[(((bgr['Origin'].str[0] != "K") & (bgr['Origin'].str[0]\
+    != "C") & (bgr['Origin'].str[1] != " ") & (bgr['Origin']\
+    .str[0] != "M") & (bgr['Origin'].str[0:2] != "BG") \
+    & (bgr['Origin'].str[0] != "T")) | ((bgr['Destination'].str[0]\
+    != "K") & (bgr['Destination'].str[0] != "C") & (bgr['Destination']\
+    .str[1] != " ") & (bgr['Destination'].str[0] != "M") & \
+    (bgr['Destination'].str[0:2] != "BG") & (bgr['Destination']\
+    .str[0] != "T"))) & (bgr['Origin'].str.len() == 4) & \
+    (bgr['Destination'].str.len() == 4) & (bgr['Type'].str[0] != " ")]
 
 # Drop the null aircraft 1/8/2022
 bgr = bgr[bgr['Type'].notna()]
@@ -94,7 +118,8 @@ bgr['Origin Country'] = bgr['Origin'].map(apc_dict)
 bgr['Destination Country'] = bgr['Destination'].map(apc_dict)
 
 # ID serialization.
-bgr['ID'] = bgr['Date'].astype(str) + bgr['Airline_SYM'].astype(str) + bgr['Flight'].astype(str)
+bgr['ID'] = bgr['Date'].astype(str) + bgr['Airline_SYM'].astype(str) \
+    + bgr['Flight'].astype(str)
 bgr['ID'] = bgr['ID'].str.replace("-", "")
 bgr['ID'] = bgr['ID'].str[2:]
 bgr['ID'] = bgr['ID'].str.replace("nan", "")
@@ -106,7 +131,8 @@ bgr['Flight'] = bgr['Flight'].str.replace("None","")
 bgr = bgr.drop(columns=["ident","Airline_SYM"])
 
 # Reordering columns 2/24/2022
-bgr = bgr[['ID','Date','Airline','Flight','Type','Origin','Origin Country','Destination','Destination Country']]
+bgr = bgr[['ID','Date','Airline','Flight','Type',\
+    'Origin','Origin Country','Destination','Destination Country']]
 
 # End string adjusted 5/23/2022
 end_string = "No flights to be added. Program exiting."
@@ -125,7 +151,8 @@ for origin in bgr['Origin Country']:
 
 bgr['Direction'] = directions
 
-bgr = bgr[['ID','Date','Airline','Flight','Type','Origin','Origin Country','Destination','Destination Country','Direction']]
+bgr = bgr[['ID','Date','Airline','Flight','Type','Origin'\
+    ,'Origin Country','Destination','Destination Country','Direction']]
 
 bgr_len = len(bgr)
 
@@ -144,7 +171,8 @@ else:
 df = df.append(bgr)
 
 # Sort values isolated 10:34 2/5/2022
-df = df.sort_values(by=['Date']).reset_index(drop=True).drop_duplicates(subset=['ID'])
+df = df.sort_values(by=['Date']).reset_index(drop=True)\
+    .drop_duplicates(subset=['ID'])
 
 # Adj 5/27/2022
 df_end_len = len(df)
@@ -167,6 +195,7 @@ print()
 print("Flight(s) Added:")
 print()
 print(bgr_final)
+
 
 # Last fix 18:30 12/29/2021
 set_with_dataframe(df_ws, df)
