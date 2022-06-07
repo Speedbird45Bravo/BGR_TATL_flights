@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore")
 
 now = dt.now()
 
-# pep8 Length compliant 6/6/2022
+# pep8 maximum line Length compliant 6/6/2022
 
 print(f"Flights pulled from FlightAware API queries at {now}.")
 
