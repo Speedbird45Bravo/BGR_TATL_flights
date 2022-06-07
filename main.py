@@ -56,20 +56,23 @@ arrivals = arrivals[['actualarrivaltime','ident','aircrafttype',\
                                      "aircrafttype":"Type"})
 departures = Departures().df
 departures = departures[['actualdeparturetime','ident',\
-                         'aircrafttype','origin','destination']]\
-                        .rename(columns={"actualdeparturetime":"Date",\
-                                         "aircrafttype":"Type"})
+    'aircrafttype','origin','destination']]\
+    .rename(columns={"actualdeparturetime":"Date",\
+    "aircrafttype":"Type"})
 
 # RIDT added 21:29 1/15/2022
 # Renaming of columns added 2/24/2022
 bgr = arrivals.append(departures).reset_index(drop=True)\
     .rename(columns={"origin":"Origin", "destination":"Destination"})
 
-# First thing we will do now that we have the arrivals and departures stacked is pull the date. 2/24/2022
+# First thing we will do now that we have the arrivals and departures stacked
+# is pull the date. 2/24/2022
+
 bgr['Date'] = bgr['Date'].apply(lambda x:\
     dt.fromtimestamp(x).strftime("%Y-%m-%d"))
 
-# Now that we have our arrival and departures together (for a given pull), we will capture the identifiers.
+# Now that we have our arrival and departures together (for a given pull),
+# we will capture the identifiers.
 idents_a = []
 idents_b = []
 
@@ -77,22 +80,26 @@ idents_b = []
 for col in bgr['ident']:
     idents_a.append(re.split("(\d+)", col)[0])
 
-# Excluding singular letter-based identifiers without any numeric values, we'll be able to grab most flight numbers here.
+# Excluding singular letter-based identifiers without any numeric values,
+# we'll be able to grab most flight numbers here.
 for col in bgr['ident']:
     try:
         idents_b.append(re.split("(\d+)", col)[1])
     except IndexError:
         idents_b.append("None")
 
-# Converting the airline ICAO codes from the API pull to a dictionary of codes listed as they are in the spreadsheet.
+# Converting the airline ICAO codes from the API pull to a dictionary of
+# codes listed as they are in the spreadsheet.
 bgr['Airline_SYM'] = pd.Series(idents_a)
 bgr['Airline_SYM'].fillna("None", inplace=True)
 bgr['Airline'] = bgr['Airline_SYM'].map(al_dict)
 bgr['Flight'] = idents_b
 bgr['Type'] = bgr['Type'].map(ac_dict)
 
-# We want to filter out flights that are entirely arriving and departing from the US (starting with "K"), Canada (starting with "C"), Mexico (starting with "M"), and
-# Greenland (starting with "BG"). There are other possible airports outside of these but most can be dealt with ad hoc.
+# We want to filter out flights that are entirely arriving and departing
+# from the US (starting with "K"), Canada (starting with "C"), Mexico (starting with "M"), and
+# Greenland (starting with "BG"). There are other possible airports
+# outside of these but most can be dealt with ad hoc.
 # "BG" and " " on bgr['Type'][0] checks 12:10 12/31/2021.
 # "T" checks on bgr['Origin'][0] 4/23/2022
 # str.len() == 4 checks on ['Origin'] and ['Destination'] 1/7/2022
@@ -109,7 +116,8 @@ bgr = bgr[(((bgr['Origin'].str[0] != "K") & (bgr['Origin'].str[0]\
 # Drop the null aircraft 1/8/2022
 bgr = bgr[bgr['Type'].notna()]
 
-# Mapping the origin and destination from ICAO (4-letter) codes to IATA (3-letter) codes.
+# Mapping the origin and destination from ICAO (4-letter) codes to IATA
+# (3-letter) codes.
 bgr['Origin'] = bgr['Origin'].map(code_dict)
 bgr['Destination'] = bgr['Destination'].map(code_dict)
 
