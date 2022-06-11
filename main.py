@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore")
 
 now = dt.now()
 
-# pep8 max line length compliant 6/6/2022
+# pep8 maximum line Length compliant 6/6/2022
 
 print(f"Flights pulled from FlightAware API queries at {now}.")
 
@@ -96,6 +96,12 @@ bgr['Airline_SYM'].fillna("None", inplace=True)
 bgr['Airline'] = bgr['Airline_SYM'].map(al_dict)
 bgr['Flight'] = idents_b
 bgr['Type'] = bgr['Type'].map(ac_dict)
+
+# Navy/USAF logic included 6/11/2022. There may be the odd C-130 or C-5
+# in the case of USAF but that is OK and can be dealt with ad hoc during
+# ongoing validation.
+bgr['Type'].loc[bgr['Airline']=="US Navy"] = "Boeing 737-700"
+bgr['Type'].loc[bgr['Airline']=="US Air Force"] = "Boeing C-17 Globemaster"
 
 # We want to filter out flights that are entirely arriving and departing
 # from the US (starting with "K"), Canada (starting with "C"), Mexico
