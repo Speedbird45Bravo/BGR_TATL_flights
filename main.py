@@ -3,6 +3,7 @@ from gs import df, df_ws, init_len
 from dicts import ac_dict, al_dict, apc_dict, code_dict
 from datetime import datetime as dt
 from gspread_dataframe import set_with_dataframe
+from sys import exit
 import re
 import pandas as pd
 import warnings
@@ -218,4 +219,5 @@ set_with_dataframe(df_ws, df)
 # Sleep logic set to 4 19:02 2/12/2022
 time.sleep(4)
 
+# Exit given sys import for structural integrity 6/18/2022
 exit()
