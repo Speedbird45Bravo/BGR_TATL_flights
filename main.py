@@ -15,7 +15,7 @@ now = dt.now()
 
 # pep8 maximum line Length compliant 6/6/2022
 
-print(f"Flights pulled from FlightAware API queries at {now}.")
+print(f"Flights pulled from FlightAware API query at {now}.")
 
 # The main objective for the program is to automate the addition
 # of flights to an existing spreadsheet.
